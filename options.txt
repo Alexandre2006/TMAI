@@ -1,0 +1,2 @@
+--exclude-dir .venv
+--exclude-dir __pycache__

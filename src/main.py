@@ -1,3 +1,5 @@
+# Code by Alexandre Haddad-Delaveau
+
 import screenshot
 
 for i in range(0,10):

@@ -1,3 +1,5 @@
+# Code by Alexandre Haddad-Delaveau
+
 from PIL import ImageGrab
 import time
 import os
@@ -17,7 +19,7 @@ def benchmark(n=1000):
     start = time.perf_counter() * 1000
 
     # Capture n images
-    for i in range(0,n):
+    for _ in range(0,n):
         ImageGrab.grab(xdisplay=get_x_display())
     
     # Collect end time (in ms)
@@ -35,4 +37,7 @@ def benchmark(n=1000):
 
 def capture():
     return ImageGrab.grab(xdisplay=get_x_display())
+
+if __name__ == "__main__":
+    benchmark()
 
