@@ -1,0 +1,1 @@
+pkill -f -u "deck" "Trackmania"
