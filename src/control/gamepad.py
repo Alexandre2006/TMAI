@@ -10,7 +10,7 @@ class Gamepad():
     # Resets the gamepad to default values (could be useful if bugs occur)
     def reset(self):
         self.gamepad.reset()
-    
+        
     def __press_button(self, button):
         self.gamepad.press_button(button)
         self.gamepad.update()
@@ -20,8 +20,12 @@ class Gamepad():
     
     # Updates gamepad with new values
     # Turn from -1.0 to 1.0
-    # Accel and Brake from 0.0 to 1.0
+    # Accel and Brake either 0 or 1
     def update(self, turn, accel, brake):
+        # Check for valid values
+        accel = 0 if accel <= 0 else 1
+        brake = 0 if brake <= 0 else 1
+        
         # Set new values
         self.gamepad.right_trigger_float(accel) # Accel
         self.gamepad.left_trigger_float(brake) # Brake
@@ -37,6 +41,9 @@ class Gamepad():
 
         # Press B
         self.__press_button(vg.XUSB_BUTTON.XUSB_GAMEPAD_B)
+        
+        # Close popup if popup is preventing respawn
+        self.dismiss_finish()
 
     # Closes the finish screen
     def dismiss_finish(self):

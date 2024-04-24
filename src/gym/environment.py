@@ -10,15 +10,13 @@ import gymnasium.spaces as spaces
 import time
 from collections import deque
 from threading import Thread, Lock, Event
+from gym.interface import TrackmaniaInterface
 import warnings
 
 class GymEnvironment(Env):
     def __init__(self):
         # Interface
-        self.interface_cls = None
-        self.interface_args = None
-        self.interface_kwargs = None
-        self.__interface = None
+        self.__interface = TrackmaniaInterface()
         self.is_waiting = False
 
         # Configburation (Episodes)
@@ -218,9 +216,6 @@ class GymEnvironment(Env):
 
     
     def __background_worker(self):
-        # Configure Interface
-        self.__interface = self.interface_cls(*self.interface_args, **self.interface_kwargs)
-
         # Configure default action
         self.default_action = self.__interface.get_default_action()
 
@@ -333,12 +328,6 @@ class GymEnvironment(Env):
         # Return observation & info
         return observation, info
 
-    def render(self, join_thread=False):
-        # Join thread if required
-        if join_thread:
-            self._wait_for_worker()
-        self.__interface.render()
-
     def stop(self):
         self._wait_for_worker()
 
@@ -351,7 +340,6 @@ class GymEnvironment(Env):
         self.__event_end_wait.wait()
         self.__event_end_wait.clear()
 
-    
     # Spaces
     def _get_action_space(self):
         return self.interface_action_space
