@@ -3,3 +3,4 @@ gymnasium
 opencv-python
 vgamepad
 numpy
+aiohttp
