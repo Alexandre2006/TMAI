@@ -1,0 +1,7 @@
+[meta]
+name = "TMAI Info Server"
+author = "ThinkAlex"
+category = "Testing"
+
+[script]
+dependencies = ["MLHook", "MLFeedRaceData", "VehicleState"]
