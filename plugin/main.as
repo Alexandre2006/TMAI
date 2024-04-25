@@ -1,8 +1,10 @@
 // Code by Alexandre Haddad-Delaveau
-// With excerpts from https://github.com/vjeux/TMSubtitles
 
 [Setting name="Port"]
 string port = "6969";
+
+[Setting name="Allow Replays"]
+bool replaysAllowed = false;
 
 // Car Info
 float speed = 0;
@@ -23,14 +25,14 @@ void Main()
     while (true) {
         updateGameInfo();
         notifyServer();
-        sleep(10);
+        sleep(1);
     }
 }
 
 void updateGameInfo()
 {
     // Make sure we are in a game
-    if (GetApp().CurrentPlayground is null) {
+    if (GetApp().CurrentPlayground is null && !replaysAllowed) {
         resetValues();
         return;
     }
@@ -40,13 +42,13 @@ void updateGameInfo()
     auto player = RaceData.GetPlayer_V4(MLFeed::LocalPlayersName);
 
     // Make sure player is playing
-    if (player is null) {
+    if (player is null && !replaysAllowed) {
         resetValues();
         return;
     }
 
     // Check if player is spawned
-    if (player.SpawnStatus == 2) {
+    if (replaysAllowed || player.SpawnStatus == 2) {
         // If spawned, update values
         racingState = true;
 
@@ -54,6 +56,7 @@ void updateGameInfo()
         auto vehicleVisState = VehicleState::ViewingPlayerState();
         if (vehicleVisState is null) {
             resetValues();
+            print("VEHICLE NULL");
             return;
         }
 
