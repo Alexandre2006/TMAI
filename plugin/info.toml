@@ -5,3 +5,4 @@ category = "Testing"
 
 [script]
 dependencies = ["MLHook", "MLFeedRaceData", "VehicleState"]
+timeout = 0

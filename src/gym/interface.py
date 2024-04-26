@@ -8,6 +8,8 @@ import time
 import screenshot
 import cv2
 import numpy as np
+from reward import RewardCalculator
+from server.server import HTTPServer
 
 class TrackmaniaInterface():
     def __init__(self):
@@ -19,13 +21,16 @@ class TrackmaniaInterface():
         # Reward / Penalty Parameters
         self.finish_reward = 100
         self.constant_penalty = 0
-        self.reward_calculator = None # TODO: Make reward calculating class
+        self.reward_calculator = RewardCalculator()
         
         # Time tracking
         self.last_time = None
         
         # Gamepad Inputs
         self.gamepad = Gamepad()        
+
+        # Server
+        self.server = HTTPServer()
     
     def send_control(self, control):
         self.gamepad.update(control[0], control[1], control[2])
@@ -38,16 +43,17 @@ class TrackmaniaInterface():
         time.sleep(1.5)
         
         # Capture initial observation
-        img = self.observe()
+        img, pos = self.observe()
         
         # Reset image history
         for _ in range(len(self.img_hist)):
             self.img_hist.append(img)
         
-        # TODO: Reset Reward Function
+        # Reset Reward Function
+        self.reward_calculator.reset()
         
         # Return initial observation
-        return img
+        return [np.array(list(self.img_hist)), self.server.speed, self.server.gear, self.server.rpm], {}
     
     def observe(self):
         img = screenshot.capture()
@@ -60,9 +66,12 @@ class TrackmaniaInterface():
         
         # Save image
         self.img = img
+
+        # Get positional data
+        pos = (self.server.pos_x, self.server.pos_y, self.server.pos_z)
         
         # Return observation
-        return img
+        return img, pos
         
     def wait(self):
         # Just reset race, no real way to wait
@@ -75,13 +84,17 @@ class TrackmaniaInterface():
         # Add image to image history
         self.img_hist.append(img)
         
-        # Calculate reward TODO: calculate reward
-        reward, terminated = None
+        # Calculate reward
+        reward, terminated = self.reward_calculator.calculate_reward()
         
         # Update reward with penalty
         reward += self.constant_penalty
         
-        # TODO: Way to check if track has ended
+        # Check if track has ended
+        ended = self.server.racing == False
+        if ended:
+            reward += self.finish_reward
+            terminated = True
         
         # Convert reward to float32
         reward = np.float32(reward)
@@ -91,7 +104,8 @@ class TrackmaniaInterface():
 
     def get_observation_space(self):
         # Return observation (0-255 due to grayscale)
-        return spaces.Box(low=0.0, high=255.0, shape=(len(self.img_hist), self.img_size[1], self.img_size[0]))
+        img = spaces.Box(low=0.0, high=255.0, shape=(len(self.img_hist), self.img_size[1], self.img_size[0]))
+        return spaces.Tuple(img, self.server.speed, self.server.gear, self.server.rpm)
     
     def get_action_space(self):
         # Range from -1.0 to 1.0 as this is the range for steering.
