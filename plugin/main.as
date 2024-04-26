@@ -25,7 +25,7 @@ void Main()
     while (true) {
         updateGameInfo();
         notifyServer();
-        sleep(1);
+        sleep(20);
     }
 }
 

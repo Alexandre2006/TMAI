@@ -4,3 +4,4 @@ opencv-python
 vgamepad
 numpy
 aiohttp
+pickle
