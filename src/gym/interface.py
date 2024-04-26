@@ -79,13 +79,13 @@ class TrackmaniaInterface():
     
     def get_observation_data(self):
         # Get observation
-        img = self.observe()
+        img, pos = self.observe()
         
         # Add image to image history
         self.img_hist.append(img)
         
         # Calculate reward
-        reward, terminated = self.reward_calculator.calculate_reward()
+        reward, terminated = self.reward_calculator.calculate_reward(pos)
         
         # Update reward with penalty
         reward += self.constant_penalty

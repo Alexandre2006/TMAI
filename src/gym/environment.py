@@ -12,6 +12,7 @@ from collections import deque
 from threading import Thread, Lock, Event
 from gym.interface import TrackmaniaInterface
 import warnings
+import cv2
 
 class GymEnvironment(Env):
     def __init__(self):
@@ -165,7 +166,10 @@ class GymEnvironment(Env):
         # Capture observation
         observation, reward, done, info = self.__interface.get_observation()
 
-        # TODO: Preprocess observation here
+        # Convert image in observation to black and white
+        img = observation[0]
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        observation[0] = img
 
         # Set observation
         self.__observation = observation
