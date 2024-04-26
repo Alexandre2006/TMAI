@@ -83,10 +83,10 @@ class ReplayRecorder:
         while self.recording_state != RecordingState.SAVED:
             time.sleep(1)
         
-    async def server_listener(self):
+    def server_listener(self):
         # Record lowest RPM if not started
         if self.recording_state == RecordingState.NOT_STARTED:
-            if self.lowest_rpm > self.server.rpm:
+            if self.lowest_rpm > self.server.rpm and self.server.rpm != 0:
                 self.lowest_rpm = self.server.rpm
         
         # Start recording if requested
