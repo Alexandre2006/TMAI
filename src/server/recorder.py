@@ -29,6 +29,7 @@ def save_recording(recording):
             # Move onto next point (since we can not generate any more points here)
             last_point = next_point
             i += 1
+            print(f"{round(i/len(positions), 3) * 100}% ({i}/{len(positions)})")
 
             # Append point
             final_positions = np.append(final_positions, next_point)
@@ -45,9 +46,6 @@ def save_recording(recording):
             # Update last point
             last_point = new_point
         
-        # Print progress
-        print(f"{round(i/len(positions), 3) * 100}% ({i}/{len(positions)})")
-    
     # Save the recording using pickle because I'm lazy
     pickle.dump(final_positions, open("recording.pkl", "wb"))
 
@@ -58,10 +56,6 @@ class RecordingState(Enum):
     ENDED = 3
     SAVED = 4
 
-# Recording a replay is complicated...
-# - It continously loops, with no clear start / end
-#   - So, we find the lowest rpm in the recording and assume that is the start/stop
-#   - We should probably find a better solution at some point
 class ReplayRecorder:
     def __init__(self):
         # Init Variables
@@ -110,8 +104,6 @@ class ReplayRecorder:
             else:
                 self.values.append((self.server.pos_x, self.server.pos_y, self.server.pos_z))
 
-# This is easier:
-# - Racing state can be determined by a variable :)
 class LiveRecorder:
     def __init__(self):
         # Init Variables

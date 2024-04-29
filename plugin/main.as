@@ -25,7 +25,7 @@ void Main()
     while (true) {
         updateGameInfo();
         notifyServer();
-        sleep(20);
+        sleep(1);
     }
 }
 
@@ -56,7 +56,6 @@ void updateGameInfo()
         auto vehicleVisState = VehicleState::ViewingPlayerState();
         if (vehicleVisState is null) {
             resetValues();
-            print("VEHICLE NULL");
             return;
         }
 
@@ -95,5 +94,8 @@ void notifyServer() {
     // Send Request
     string url = "http://127.0.0.1:" + port;
     Net::HttpRequest@ request = Net::HttpPost(url, Json::Write(jsonValues));
-    print(Json::Write(jsonValues));
+
+    if (racingState) {
+        print(Json::Write(jsonValues));
+    }
 }

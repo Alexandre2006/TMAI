@@ -5,7 +5,7 @@ import gymnasium.spaces as spaces
 from control.gamepad import Gamepad
 from collections import deque
 import time
-import screenshot
+import control.screenshot as screenshot
 import cv2
 import numpy as np
 from reward import RewardCalculator

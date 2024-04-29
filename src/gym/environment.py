@@ -138,8 +138,6 @@ class GymEnvironment(Env):
         self.__event_start_step.set()
 
     def __apply_observe_wait(self, action):
-        # TODO: Preprocess Action Here
-
         # Send action
         self.__interface.send_control(action)
 
@@ -316,8 +314,6 @@ class GymEnvironment(Env):
 
         # Attach action buffer w/ observation for post-processing
         observation = tuple(*observation, *self.action_buffer)
-
-        # TODO: Run observation pre-processing here
 
         # Re-initialize time
         if not self.time_initialized:
