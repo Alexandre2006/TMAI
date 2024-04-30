@@ -20,7 +20,7 @@ class RewardCalculator:
         self.failure_count = 0
 
         # Load recording
-        self.recording = pickle.load(open("recording.pkl", "rb"))
+        self.recording = pickle.load(open("data/recording.pkl", "rb"))
     
     def calculate_reward(self, position):
         # Keep track of whether or not to terminate the episode
@@ -41,7 +41,7 @@ class RewardCalculator:
         while index <= len(self.recording):
             distance = np.linalg.norm(position - self.recording[index]) # https://stackoverflow.com/questions/1401712/how-can-the-euclidean-distance-be-calculated-with-numpy
             # If this is the best point so far, save it
-            if distance < self.best_index_distance:
+            if distance < best_index_distance:
                 best_index = index
                 best_index_distance = distance
                 future_points_considered = self.future_points_considered

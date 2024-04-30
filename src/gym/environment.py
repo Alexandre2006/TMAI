@@ -13,6 +13,7 @@ from threading import Thread, Lock, Event
 from gym.interface import TrackmaniaInterface
 import warnings
 import cv2
+import numpy as np
 
 class GymEnvironment(Env):
     def __init__(self):
@@ -73,6 +74,10 @@ class GymEnvironment(Env):
         self.__event_logic.wait()
         self.__event_logic.clear()
 
+        # Action Buffer
+        self.action_buffer_length = 2
+        self.action_buffer = deque(maxlen=self.action_buffer_length)
+
         # Spaces
         self.action_space = self._get_action_space()
         self.observation_space = self._get_observation_space()
@@ -84,10 +89,6 @@ class GymEnvironment(Env):
 
         # Gymnasium Variables
         self.seed = None
-
-        # Action Buffer
-        self.action_buffer_length = 2
-        self.action_buffer = deque(maxlen=self.action_buffer_length)
 
         # Initialize Action Buffer
         self.initialize_action_buffer()
@@ -162,12 +163,7 @@ class GymEnvironment(Env):
         self.__observation_lock.acquire()
 
         # Capture observation
-        observation, reward, done, info = self.__interface.get_observation()
-
-        # Convert image in observation to black and white
-        img = observation[0]
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        observation[0] = img
+        observation, reward, done, info = self.__interface.get_observation_data()
 
         # Set observation
         self.__observation = observation
@@ -196,6 +192,7 @@ class GymEnvironment(Env):
                 done = self.__observation_terminated
                 info = self.__observation_info
                 self.__observation_set = False
+                waiting = False
             
             # Release observation lock
             self.__observation_lock.release()
@@ -238,7 +235,7 @@ class GymEnvironment(Env):
             if self.__reset_flag:
                 # Reset seed and options
                 seed, options = self.__reset_args
-                self.__reset_result = self.__interface.reset(seed=seed, options=options)
+                self.__reset_result = self.__interface.reset()
                 self.__reset_flag = False
                 self.__event_end_reset.set()
             # Check for wait flag
@@ -283,7 +280,7 @@ class GymEnvironment(Env):
                 self.wait()
 
         # Attach action buffer w/ observation for post-processing
-        observation = tuple(*observation, *self.action_buffer)
+        observation = (*observation, *self.action_buffer)
 
         # Return observation, reward, terminated, truncated, info
         return observation, reward, terminated, truncated, info
@@ -313,7 +310,7 @@ class GymEnvironment(Env):
         observation, info = self.__reset_result
 
         # Attach action buffer w/ observation for post-processing
-        observation = tuple(*observation, *self.action_buffer)
+        observation = (*observation, *self.action_buffer)
 
         # Re-initialize time
         if not self.time_initialized:
@@ -346,4 +343,4 @@ class GymEnvironment(Env):
     
     def _get_observation_space(self):
         interface_observation_space = self.interface_observation_space
-        return spaces.Tuple((*interface_observation_space.spaces, *((self._get_action_space(),) * self.act_buf_len)))
+        return spaces.Tuple((*interface_observation_space.spaces, *((self._get_action_space(),) * self.action_buffer_length)))

@@ -1,11 +1,14 @@
 # Code by Alexandre Haddad-Delaveau
 
+from pathlib import Path
 import control.screenshot as screenshot
 import logging
+import trainer.trainer as trainer
+from actor.actor import Actor
 
-for i in range(0,10):
-    print(f"RUN {i+1}: ", end="")
-    screenshot.benchmark() 
+Actor().run(10)
+
+
 
 
 # Hey, this file is going to be blank for quite a while longer...

@@ -16,31 +16,32 @@ def create_network(sizes, activation, output_activation=nn.Identity):
     # Create layers
     for layer in range(len(sizes) - 1):
         activation_function = activation if layer < len(sizes) - 2 else output_activation
-        layers += [nn.Lineaer(sizes[layer], sizes[layer+1]), activation_function()]
+        layers += [nn.Linear(sizes[layer], sizes[layer+1]), activation_function()]
     
     # Return network
     return nn.Sequential(*layers)
 
 class MLPSACActor(nn.Module):
     def __init__(self, observation_space, action_space, hidden_sizes=(256, 256), activation=nn.ReLU):
+        super().__init__()
         # Save spaces
         self.observation_space = observation_space
         self.action_space = action_space
 
         # Find observation space dimensions
         try:
-            observation_dimensions = sum(prod(size for size in space.shape) for space in observation_space)
+            observation_dimensions = sum(prod(size for size in space.shape) for space in self.observation_space)
             self.observation_is_tuple = True
         except:
-            observation_dimensions = prod(observation_space.shape)
+            observation_dimensions = prod(self.observation_space.shape)
             self.observation_is_tuple = False
         
         # Find action space dimensions & range
-        action_dimensions = action_space.shape[0]
-        self.max_action = action_space.high[0]
+        action_dimensions = self.action_space.shape[0]
+        self.max_action = self.action_space.high[0]
 
         # Create Neural Network
-        self.network = create_network([observation_dimensions] + list(hidden_sizes) + [action_dimensions], activation, activation)
+        self.network = create_network([observation_dimensions] + list(hidden_sizes), activation, activation)
 
         # Mean & Log-Std Layers
         self.mean_layer = nn.Linear(hidden_sizes[-1], action_dimensions)
@@ -54,7 +55,7 @@ class MLPSACActor(nn.Module):
             observation = torch.flatten(observation, start_dim=1)
         
         # Send through network
-        output = self.network(observation)
+        output = self.network(observation.to(torch.float32))
 
         # Calculate mean, log-std, and std
         mean = self.mean_layer(output)
@@ -94,10 +95,10 @@ class MLPSACActor(nn.Module):
         
         elif isinstance(first_elem, Sequence):
             transposed_batch = list(zip(*batch))
-            return type(first_elem)(self.collate(samples, self.device) for samples in transposed_batch)
+            return type(first_elem)(self.collate(samples) for samples in transposed_batch)
 
         elif isinstance(first_elem, Mapping):
-            return type(first_elem)((key, self.collate(tuple(d[key] for d in batch), self.device)) for key in first_elem)
+            return type(first_elem)((key, self.collate(tuple(d[key] for d in batch))) for key in first_elem)
         
         else:
             return torch.from_numpy(np.array(batch)).to(self.device)
@@ -123,7 +124,7 @@ class MLPSACActor(nn.Module):
             return action
 
     def act_(self, obs):
-        obs = self.collate([obs], device=self.device)
+        obs = self.collate([obs])
         with torch.no_grad():
             action = self.act(obs)
         return action

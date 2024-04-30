@@ -47,7 +47,7 @@ def save_recording(recording):
             last_point = new_point
         
     # Save the recording using pickle because I'm lazy
-    pickle.dump(final_positions, open("recording.pkl", "wb"))
+    pickle.dump(final_positions, open("data/recording.pkl", "wb"))
 
 class RecordingState(Enum):
     NOT_STARTED = 0

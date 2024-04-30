@@ -8,7 +8,7 @@ import time
 import control.screenshot as screenshot
 import cv2
 import numpy as np
-from reward import RewardCalculator
+from gym.reward import RewardCalculator
 from server.server import HTTPServer
 
 class TrackmaniaInterface():
@@ -16,7 +16,7 @@ class TrackmaniaInterface():
         # Image Options
         self.img_size = (64, 64)
         self.img = None
-        self.img_hist = deque(5) # Try 5 for now, adjust later 
+        self.img_hist = deque(maxlen=5) # Try 5 for now, adjust later 
         
         # Reward / Penalty Parameters
         self.finish_reward = 100
@@ -51,12 +51,32 @@ class TrackmaniaInterface():
         
         # Reset Reward Function
         self.reward_calculator.reset()
-        
-        # Return initial observation
-        return [np.array(list(self.img_hist)), self.server.speed, self.server.gear, self.server.rpm], {}
+
+        # Convert types to numpy
+        speed = np.array([
+            self.server.speed,
+        ], dtype='float32')
+        gear = np.array([
+            self.server.gear,
+        ], dtype='float32')
+        rpm = np.array([
+            self.server.rpm,
+        ], dtype='float32')
+        for i in range(len(self.img_hist)):
+            self.img_hist.append(img)
+        images = np.array(list(self.img_hist))
+
+        print("GOT OBSERVATION FROMR ESET")
+        print(images)
+
+        # Return initial observation # TODO: FIX
+        return [np.array([]), speed, gear, rpm], {}
     
     def observe(self):
         img = screenshot.capture()
+
+        # Convert to numpy array
+        img = np.array(img)
         
         # Resize image to smaller size for improved performance
         img = cv2.resize(img, self.img_size)
@@ -98,14 +118,19 @@ class TrackmaniaInterface():
         
         # Convert reward to float32
         reward = np.float32(reward)
+
+        print("GOT OBSERVATION FROM MAIN COMMAND")
         
         # Return observation (info can be left blank)
-        return img, reward, terminated, {}
+        return np.array(list(self.img_hist)), reward, terminated, {}
 
     def get_observation_space(self):
         # Return observation (0-255 due to grayscale)
         img = spaces.Box(low=0.0, high=255.0, shape=(len(self.img_hist), self.img_size[1], self.img_size[0]))
-        return spaces.Tuple(img, self.server.speed, self.server.gear, self.server.rpm)
+        speed = spaces.Box(low=0.0, high=1000.0, shape=(1, ))
+        gear = spaces.Box(low=0.0, high=6.0, shape=(1, ))
+        rpm = spaces.Box(low=0.0, high=11000.0, shape=(1, ))
+        return spaces.Tuple((img, speed, gear, rpm))
     
     def get_action_space(self):
         # Range from -1.0 to 1.0 as this is the range for steering.

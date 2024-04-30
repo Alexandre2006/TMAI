@@ -11,6 +11,50 @@ from buffer import shared_buffer, shared_weights
 from gym.interface import TrackmaniaInterface
 from sac.agent import SACTrainingAgent
 
+def save_trainer(trainer, backup_path): # Using temporary path to avoid corruption
+    # Create temporary path from backup path
+    temp_path = backup_path.with_suffix(".tmp")
+
+    # Save to temporary path
+    with open(temp_path, "wb") as file:
+        pickle.dump(trainer, file)
+    
+    # Replace backup path with temporary path
+    os.replace(temp_path, backup_path)
+
+def load_trainer(backup_path):
+    # Load trainer from backup path
+    with open(backup_path, "rb") as file:
+        trainer = pickle.load(file)
+    
+    return trainer
+
+def run_trainer():
+        # Set trainer backup path
+        backup_path = Path("data/backup_trainer.pkl")
+
+        # Attempt to load previous backup
+        if os.path.exists(backup_path):
+            print("Backup found. Loading trainer...")
+            trainer = load_trainer(backup_path)
+        # If no backup exists, create a new trainer
+        else:
+            print("No backup found. Creating new trainer...")
+            trainer = Trainer()
+            # Save trainer
+            save_trainer(trainer, backup_path)
+        
+        while trainer.epoch < trainer.epochs:
+            # Run epoch
+            epoch_stats = trainer.run_epoch()
+
+            # Log epoch statistics
+            print("Epoch Statistics:")
+            print(epoch_stats)
+
+            # Backup trainer
+            save_trainer(trainer, backup_path)
+
 class Trainer:
     def __init__(self):
 
@@ -187,7 +231,6 @@ class TrainerMemory:
     def __init__(self, device, steps):
         # Torch Memory Configuration
         self.memory_size = 1000000 # Maximum memory size
-        self.dataset_path = Path("dataset.pkl") # Path to dataset (stores previous experiences)
         self.device = device # Torch Device
 
         # Memory Configuration
@@ -206,14 +249,13 @@ class TrainerMemory:
         self.test_steps_stat = 0
         self.train_steps_stat = 0
 
-        # Load Data
-        if os.path.isfile(self.dataset_path):
-            with open(self.dataset_path, 'rb') as f:
-                self.data = list(pickle.load(f))
-        else:
-            self.data = []
+        # Create data
+        self.data = []
 
     def __len__(self):
+        # Prevents index out of range errors
+        if len(self.data) == 0:
+            return 0
         # Only calculate length for first element, as it is a list of all the indices
         length = len(self.data[0]) - self.minimum_samples - 1
         return 0 if length < 0 else length
@@ -244,10 +286,10 @@ class TrainerMemory:
         
         elif isinstance(first_elem, Sequence):
             transposed_batch = list(zip(*batch))
-            return type(first_elem)(self.collate(samples, self.device) for samples in transposed_batch)
+            return type(first_elem)(self.collate(samples) for samples in transposed_batch)
 
         elif isinstance(first_elem, Mapping):
-            return type(first_elem)((key, self.collate(tuple(d[key] for d in batch), self.device)) for key in first_elem)
+            return type(first_elem)((key, self.collate(tuple(d[key] for d in batch))) for key in first_elem)
         
         else:
             return torch.from_numpy(np.array(batch)).to(self.device)

@@ -38,8 +38,8 @@ class SACTrainingAgent:
         self.learning_rate = 1e-3
 
         # Configure Optimizers
-        self.actor_optimizer = Adam(self.model.actor.parameters(), {"lr": self.learning_rate})
-        self.critic_optimizer = Adam(itertools.chain(self.model.q1.parameters(), self.model.q2.parameters()), {"lr": self.learning_rate})
+        self.actor_optimizer = Adam(self.model.actor.parameters(), lr=self.learning_rate)
+        self.critic_optimizer = Adam(itertools.chain(self.model.q1.parameters(), self.model.q2.parameters()), lr=self.learning_rate)
 
         # Configure target entropy
         self.target_entropy = -np.prod(action_space.shape)
