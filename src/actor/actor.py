@@ -3,7 +3,7 @@ from pathlib import Path
 import torch
 
 from gym.environment import GymEnvironment
-from sac.actor import MLPSACActor
+from sac.actor import VanillaCNNActorModule
 from buffer import shared_buffer, shared_weights
 import datetime
 
@@ -18,7 +18,7 @@ class Actor:
         self.observation_space = self.environment.observation_space
 
         # Configuration (Actor)
-        self.actor = MLPSACActor(self.observation_space, self.action_space).to(self.device)
+        self.actor = VanillaCNNActorModule(self.observation_space, self.action_space).to(self.device)
 
         # Configuration (Episode Parameters)
         self.episode_max_length = 1000
@@ -94,6 +94,11 @@ class Actor:
 
         # Run Episode
         for i in range(self.episode_max_length):
+            # Convert image in observation to float32
+            observation = list(observation)
+            observation[0] = observation[0].astype('float32')
+            observation = tuple(observation)
+
             observation, reward, terminated, truncated, info = self.step(observation, (i == self.episode_max_length - 1))
             total_reward += reward
             steps += 1

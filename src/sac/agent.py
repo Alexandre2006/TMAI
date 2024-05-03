@@ -9,7 +9,7 @@ from copy import deepcopy
 import itertools
 
 import torch
-from sac.actor import MLPSAC
+from sac.actor import VanillaCNNActorCritic
 from torch.optim import Adam
 import numpy as np
 
@@ -28,7 +28,7 @@ class SACTrainingAgent:
         self.action_space = action_space
 
         # Configure model
-        self.model = MLPSAC(observation_space, action_space).to(self.device)
+        self.model = VanillaCNNActorCritic(observation_space, action_space).to(self.device)
         self.model_target = disable_gradients(deepcopy(self.model))
 
         # Network Parameters
@@ -57,7 +57,7 @@ class SACTrainingAgent:
 
     def train(self, batch):
         # Unbatch the batch
-        observations, actions, rewards, next_observations, dones, _ = batch
+        observations, actions, rewards, next_observations, dones, infos = batch
 
         # Get actor output
         action, probability = self.model.actor(observations)

@@ -10,6 +10,7 @@ import cv2
 import numpy as np
 from gym.reward import RewardCalculator
 from server.server import HTTPServer
+from buffer import shared_server
 
 class TrackmaniaInterface():
     def __init__(self):
@@ -23,14 +24,14 @@ class TrackmaniaInterface():
         self.constant_penalty = 0
         self.reward_calculator = RewardCalculator()
         
+        # Server
+        self.server = shared_server
+        
         # Time tracking
         self.last_time = None
         
         # Gamepad Inputs
         self.gamepad = Gamepad()        
-
-        # Server
-        self.server = HTTPServer()
     
     def send_control(self, control):
         self.gamepad.update(control[0], control[1], control[2])
@@ -62,15 +63,13 @@ class TrackmaniaInterface():
         rpm = np.array([
             self.server.rpm,
         ], dtype='float32')
-        for i in range(len(self.img_hist)):
+        # Fill deque with initial observation
+        for _ in range(5):
             self.img_hist.append(img)
         images = np.array(list(self.img_hist))
 
-        print("GOT OBSERVATION FROMR ESET")
-        print(images)
-
         # Return initial observation # TODO: FIX
-        return [np.array([]), speed, gear, rpm], {}
+        return [images, speed, gear, rpm], {}
     
     def observe(self):
         img = screenshot.capture()
@@ -116,17 +115,26 @@ class TrackmaniaInterface():
             reward += self.finish_reward
             terminated = True
         
+        # Get vehicle data
+        speed = np.array([
+            self.server.speed,
+        ], dtype='float32')
+        gear = np.array([
+            self.server.gear,
+        ], dtype='float32')
+        rpm = np.array([
+            self.server.rpm,
+        ], dtype='float32')
+        
         # Convert reward to float32
         reward = np.float32(reward)
-
-        print("GOT OBSERVATION FROM MAIN COMMAND")
         
         # Return observation (info can be left blank)
-        return np.array(list(self.img_hist)), reward, terminated, {}
+        return [np.array(list(self.img_hist)), speed, gear, rpm], reward, terminated, {}
 
     def get_observation_space(self):
         # Return observation (0-255 due to grayscale)
-        img = spaces.Box(low=0.0, high=255.0, shape=(len(self.img_hist), self.img_size[1], self.img_size[0]))
+        img = spaces.Box(low=0.0, high=255.0, shape=(5, self.img_size[1], self.img_size[0]))
         speed = spaces.Box(low=0.0, high=1000.0, shape=(1, ))
         gear = spaces.Box(low=0.0, high=6.0, shape=(1, ))
         rpm = spaces.Box(low=0.0, high=11000.0, shape=(1, ))

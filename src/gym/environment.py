@@ -280,7 +280,7 @@ class GymEnvironment(Env):
                 self.wait()
 
         # Attach action buffer w/ observation for post-processing
-        observation = (*observation, *self.action_buffer)
+        observation = ((*observation, *tuple(self.action_buffer),))
 
         # Return observation, reward, terminated, truncated, info
         return observation, reward, terminated, truncated, info

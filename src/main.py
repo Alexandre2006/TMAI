@@ -2,27 +2,26 @@
 
 from pathlib import Path
 import control.screenshot as screenshot
-import logging
-import trainer.trainer as trainer
+from trainer.trainer import Trainer
 from actor.actor import Actor
+import threading
 
-Actor().run(10)
+# Create two threads, one with an actor and another with a trainer, running in parallel
 
+def start_actor():
+    actor = Actor()
+    actor.run(1)
 
+def start_trainer():
+    trainer = Trainer()
+    trainer.run_epoch()
 
+def main():
+    # Create two seperate threads (running in parallel) for trainer and actor
+    #trainer_thread = threading.Thread(target=start_trainer)
+    #trainer_thread.start()
+    start_actor()
+    start_trainer()
 
-# Hey, this file is going to be blank for quite a while longer...
-# So here are some notes for what I need to do:
-# 1. Implement SAC (DONE)
-# 2. Create the actual actor (who will play the game and send the data back to the trainer)
-# 3. Build connection between actor and trainer (DONE)
-# 4. Build the main script
-
-# So... I've forgotten this twice today: Why are we seperating the training and the acting?
-# Is it a) because we want to have multiple actors?
-# b) because we want multiple trainers?
-# or c) because we want to be able to train on a different machine than we play on?
-
-# If you said C, you where the closest! Congrats!!!!
-# We don't exactly want to play on a different machine, the bigger issue is that we can't exactly train at real time speeds (I think).
-# We need to instead build a model, send it off to actor, wait for actor to play, and then send it back to the trainer.
+if __name__ == "__main__":
+    main()    

@@ -10,6 +10,7 @@ from pandas import DataFrame
 from buffer import shared_buffer, shared_weights
 from gym.interface import TrackmaniaInterface
 from sac.agent import SACTrainingAgent
+from util import collate
 
 def save_trainer(trainer, backup_path): # Using temporary path to avoid corruption
     # Create temporary path from backup path
@@ -99,6 +100,7 @@ class Trainer:
     def update_buffer(self):
         # Get shared buffer
         buffer = shared_buffer
+        count = len(buffer.memory)
 
         # Append shared buffer to memory
         self.memory.append(shared_buffer)
@@ -107,8 +109,8 @@ class Trainer:
         shared_buffer.clear_memory()
 
         # Update statistics
-        self.total_samples = len(self.memory)
-        print(f"Memory updated with {len(buffer)} samples, total samples: {self.total_samples}")
+        self.total_samples = len(self.memory.data)
+        print(f"Memory updated with {count} samples, total samples: {self.total_samples}")
     
     def check_step_ratio(self):
         # Check if number of steps in buffer is equal to the number of steps in the environment
@@ -153,6 +155,8 @@ class Trainer:
             sample_previous = check_ratio_end
 
             for batch in self.memory:
+                print(len(batch[0]))
+
                 # Measure sample time
                 sample_start = time.time()
 
@@ -251,6 +255,17 @@ class TrainerMemory:
 
         # Create data
         self.data = []
+    
+    def __getitem__(self, item):
+        # Get transition
+        prev_observation, new_action, reward, new_observation, terminated, truncated, info = self.get_transition(item)
+        
+        # Convert to float32 instead of bool
+        terminated = np.float32(terminated)
+        truncated = np.float32(truncated)
+        
+        # Return data
+        return prev_observation, new_action, reward, new_observation, terminated, truncated
 
     def __len__(self):
         # Prevents index out of range errors
@@ -262,39 +277,17 @@ class TrainerMemory:
     
     def __iter__(self):
         for _ in range(self.steps):
-            yield self.sample()
+            sample = self.sample()
+            yield sample
     
     def sample(self):
-        indices = (np.random.randint(0, len(self) - 1) for _ in range(self.steps))
+        indices = (np.random.randint(0, len(self) - 1) for _ in range(256))
         batch = [self[index] for index in indices]
-        return self.collate(batch)
+        print("WEEE WOOO")
+        batch = collate(batch, self.device)
+        return batch
     
-    # Written by GitHub Copilot
-    def collate(self, batch):
-        first_elem = batch[0]
-
-        if isinstance(first_elem, torch.Tensor):
-            return torch.stack(batch, 0).to(self.device)
-
-        elif isinstance(first_elem, np.ndarray):
-            torch_batch = [torch.from_numpy(b) for b in batch]
-            return self.collate(torch_batch)
-
-        elif hasattr(first_elem, '__torch_tensor__'):
-            torch_batch = [b.__torch_tensor__().to(self.device) for b in batch]
-            return torch.stack(torch_batch, 0)
-        
-        elif isinstance(first_elem, Sequence):
-            transposed_batch = list(zip(*batch))
-            return type(first_elem)(self.collate(samples) for samples in transposed_batch)
-
-        elif isinstance(first_elem, Mapping):
-            return type(first_elem)((key, self.collate(tuple(d[key] for d in batch))) for key in first_elem)
-        
-        else:
-            return torch.from_numpy(np.array(batch)).to(self.device)
-    
-    def get_last_eoe(eoes):
+    def get_last_eoe(self, eoes):
         for i in reversed(range(len(eoes))):
             if eoes[i]:
                 return i
@@ -438,12 +431,10 @@ class TrainerMemory:
             self.data[8] = self.data[8][to_trim:]
             self.data[9] = self.data[9][to_trim:]
             self.data[10] = self.data[10][to_trim:]
-        
-        return self
-
+                
     def append(self, buffer):
         # Make sure buffer is not empty
-        if len(buffer) == 0:
+        if len(buffer) != 0:
             # Update stats
             self.train_return_stat = buffer.train_return_stat
             self.test_return_stat = buffer.test_return_stat

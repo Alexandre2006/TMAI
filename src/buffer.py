@@ -1,3 +1,6 @@
+from server.server import HTTPServer
+
+
 class Buffer:
     def __init__(self):
         # Memory
@@ -37,5 +40,6 @@ class Buffer:
     def clear_memory(self):
         self.memory = []
 
+shared_server = HTTPServer()
 shared_buffer = Buffer()
 shared_weights = None
