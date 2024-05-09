@@ -279,9 +279,6 @@ class GymEnvironment(Env):
             if self.wait_on_completion:
                 self.wait()
 
-        # Attach action buffer w/ observation for post-processing
-        observation = ((*observation, *tuple(self.action_buffer),))
-
         # Return observation, reward, terminated, truncated, info
         return observation, reward, terminated, truncated, info
 
@@ -308,9 +305,6 @@ class GymEnvironment(Env):
 
         # Get reset result
         observation, info = self.__reset_result
-
-        # Attach action buffer w/ observation for post-processing
-        observation = (*observation, *self.action_buffer)
 
         # Re-initialize time
         if not self.time_initialized:
@@ -343,4 +337,4 @@ class GymEnvironment(Env):
     
     def _get_observation_space(self):
         interface_observation_space = self.interface_observation_space
-        return spaces.Tuple((*interface_observation_space.spaces, *((self._get_action_space(),) * self.action_buffer_length)))
+        return spaces.Tuple(interface_observation_space.spaces)

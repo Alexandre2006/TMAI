@@ -10,18 +10,18 @@ import threading
 
 def start_actor():
     actor = Actor()
-    actor.run(1)
+    actor.run(10000)
 
 def start_trainer():
     trainer = Trainer()
-    trainer.run_epoch()
+    while True:
+        trainer.run_epoch()
 
 def main():
     # Create two seperate threads (running in parallel) for trainer and actor
-    #trainer_thread = threading.Thread(target=start_trainer)
-    #trainer_thread.start()
+    trainer_thread = threading.Thread(target=start_trainer)
+    trainer_thread.start()
     start_actor()
-    start_trainer()
 
 if __name__ == "__main__":
     main()    

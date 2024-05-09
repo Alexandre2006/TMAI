@@ -12,6 +12,7 @@ from gym.interface import TrackmaniaInterface
 from sac.agent import SACTrainingAgent
 from util import collate
 
+
 def save_trainer(trainer, backup_path): # Using temporary path to avoid corruption
     # Create temporary path from backup path
     temp_path = backup_path.with_suffix(".tmp")
@@ -61,6 +62,7 @@ class Trainer:
 
         # TODO: Figure out what type of device AMD Radeon Compute is
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        print(f"CUDA: {torch.cuda.is_available()}")
 
         # Configuration (Training Duration)
         self.steps = 100 # Steps per epoch
@@ -92,6 +94,12 @@ class Trainer:
 
         # Keep track of current epoch
         self.epoch = 0
+        
+        # Load weights if trainer.weights exists
+        if os.path.exists("trainer.weights"):
+            self.agent.model.actor = self.agent.get_actor().load("trainer.weights", self.device)
+            print("Loaded weights from trainer.weights")
+        
 
         # Print start statistics
         self.total_samples = len(self.memory)
@@ -103,13 +111,16 @@ class Trainer:
         count = len(buffer.memory)
 
         # Append shared buffer to memory
-        self.memory.append(shared_buffer)
+        self.memory.append(buffer)
 
         # Clear shared buffer
         shared_buffer.clear_memory()
 
         # Update statistics
-        self.total_samples = len(self.memory.data)
+        try:
+            self.total_samples = len(self.memory.data[0])
+        except:
+            self.total_samples = 0
         print(f"Memory updated with {count} samples, total samples: {self.total_samples}")
     
     def check_step_ratio(self):
@@ -128,6 +139,9 @@ class Trainer:
                 # Check ratio and minimum
                 ratio = self.total_updates / self.total_samples if self.total_samples > 0.0 else -1.0
                 minimum_met = self.total_samples >= self.memory.minimum_samples
+                
+                # Print current ratio
+                print(f"Current ratio: {ratio} - {self.total_updates} updates, {self.total_samples} samples")
 
                 # Sleep for a bit if still not enough samples
                 if not minimum_met or (ratio > self.max_training_steps_per_env_step or ratio == -1.0):
@@ -139,7 +153,7 @@ class Trainer:
         stats_epoch = []
 
         # Repeat each round
-        for round in range(self.rounds):
+        for round in range(self.rounds):                
             # Log current round
             print(f"[{self.epoch}/{self.epochs} epochs][{round}/{self.rounds} rounds] - {round/self.rounds*100}% Complete")
 
@@ -153,16 +167,23 @@ class Trainer:
 
             # Measure sample time
             sample_previous = check_ratio_end
-
+            
+            # Wait for memory to fill up
+            while len(self.memory) <= 1:
+                time.sleep(1)
+            
+            i = 0
             for batch in self.memory:
-                print(len(batch[0]))
-
+                # Print batch progress
+                print(f"Batch {i}/{self.steps}")
+                i += 1
+                
                 # Measure sample time
                 sample_start = time.time()
 
                 # Check if we need to update the buffer
-                if self.total_updates % self.update_buffer_interval == 0:
-                    self.update_buffer()
+                #if self.total_updates % self.update_buffer_interval == 0:
+                #    self.update_buffer()
                 
                 buffer_end = time.time()
 
@@ -201,16 +222,6 @@ class Trainer:
             print(f"Idle time (ratio check): {check_ratio_end - check_ratio_start}")
             print(f"Buffer update time: {buffer_end - check_ratio_end}")
             print(f"Training time: {training_end - buffer_end}")
-
-            # Add statistics to epoch stats (GitHub Copilot wrote this)
-            stats_epoch += pd.Series(
-                {
-                    "memory_len" : len(self.memory),
-                    "round_time" : training_end - check_ratio_start,
-                    "idle_time" : check_ratio_end - check_ratio_start,
-                    **DataFrame(stats_round).mean(skipna=True)
-                }
-            )
 
         # Increment epoch
         self.epoch += 1
@@ -283,7 +294,6 @@ class TrainerMemory:
     def sample(self):
         indices = (np.random.randint(0, len(self) - 1) for _ in range(256))
         batch = [self[index] for index in indices]
-        print("WEEE WOOO")
         batch = collate(batch, self.device)
         return batch
     
@@ -293,9 +303,9 @@ class TrainerMemory:
                 return i
         return None
 
-    def clear_history(history, eoe_index):
+    def clear_history(self, history, eoe_index):
         # Make sure index is in range
-        if 0 <= eoe_index < len(history):
+        if 0 <= eoe_index < len(history) - 1:
 
             # Replace data with first frame of latest episode
             # (easy way is just to go backwards one by one and replace by grabbing the next item)
@@ -316,7 +326,7 @@ class TrainerMemory:
         
         # Get indices
         index_previous = item + self.minimum_samples - 1
-        index_current = index_previous + 1
+        index_current = item + self.minimum_samples
 
         # Get actions (into buffers)
         actions = self.load_actions(item)
@@ -434,7 +444,7 @@ class TrainerMemory:
                 
     def append(self, buffer):
         # Make sure buffer is not empty
-        if len(buffer) != 0:
+        if len(buffer.memory) != 0:
             # Update stats
             self.train_return_stat = buffer.train_return_stat
             self.test_return_stat = buffer.test_return_stat

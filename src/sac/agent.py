@@ -29,7 +29,7 @@ class SACTrainingAgent:
 
         # Configure model
         self.model = VanillaCNNActorCritic(observation_space, action_space).to(self.device)
-        self.model_target = disable_gradients(deepcopy(self.model))
+        self.model_target = self.model
 
         # Network Parameters
         self.gamma = 0.99
@@ -58,7 +58,7 @@ class SACTrainingAgent:
     def train(self, batch):
         # Unbatch the batch
         observations, actions, rewards, next_observations, dones, infos = batch
-
+        
         # Get actor output
         action, probability = self.model.actor(observations)
 

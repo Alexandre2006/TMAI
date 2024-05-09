@@ -56,16 +56,24 @@ class VanillaCNN(nn.Module):
         self.flat_features = self.output_channels * self.h_out * self.w_out
         
         # MLP
-        self.mlp_input_features = self.flat_features + (12 if self.q else 9)
+        self.mlp_input_features = self.flat_features + 3
         self.mlp_layers = [256, 256, 1] if self.q else [256, 256]
         self.mlp = create_network([self.mlp_input_features] + self.mlp_layers)
     
     def forward(self, x):
         if self.q:
-            images, speed, gear, rpm, action1, action2, action = x
+            try:
+                images, speed, gear, rpm, action = x
+            except:
+                images, speed, gear, rpm, action = x[0], x[1], x[2], x[3], x[4]
         else:
-            images, speed, gear, rpm, action1, action2 = x
-
+            try:
+                images, speed, gear, rpm = x
+            except:
+                images, speed, gear, rpm = x[0], x[1], x[2], x[3]
+        
+        images = images.float()
+            
         # Convolutional Layers
         x = torch.relu(self.conv1(images))
         x = torch.relu(self.conv2(x))
@@ -74,12 +82,13 @@ class VanillaCNN(nn.Module):
 
         # Count flat features
         x = x.view(-1, self.flat_features)
-        
+                
         # Concatenate with speed, gear, rpm, and actions
         if self.q:
-            x = torch.cat([x, speed, gear, rpm, action1, action2, action], dim=-1)
+            x = torch.cat([x, speed, gear, rpm], dim=-1)
         else:
-            x = torch.cat([x, speed, gear, rpm, action1, action2], dim=-1)
+            x = torch.cat([x, speed, gear, rpm], dim=-1)
+
 
         # MLP
         x = self.mlp(x)
